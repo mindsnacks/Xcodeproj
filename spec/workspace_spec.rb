@@ -1,6 +1,19 @@
 require File.expand_path('../spec_helper', __FILE__)
 
 describe "Xcodeproj::Workspace" do
+
+	describe "from empty" do
+    before do
+      @workspace = Xcodeproj::Workspace.new
+    end
+
+    it "it does not contain any projects" do
+			@workspace.projpaths.should.be.empty
+			@workspace.include?('Framework.xcodeproj').should == false
+		end
+
+	end
+
   describe "from new" do
     before do
       @workspace = Xcodeproj::Workspace.new('Pods/Pods.xcodeproj', 'App.xcodeproj')
@@ -9,7 +22,9 @@ describe "Xcodeproj::Workspace" do
     it "accepts new projects" do
       @workspace << 'Framework.xcodeproj'
       @workspace.projpaths.should.include 'Framework.xcodeproj'
+			@workspace.include?('Framework.xcodeproj').should == true
     end
+
   end
 
   describe "converted to XML" do
