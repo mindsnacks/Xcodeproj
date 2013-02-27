@@ -37,6 +37,28 @@ module Xcodeproj
 		# 
 		class WorkspaceItem
 
+			module LocationType
+				ABSOLUTE_PATH             = "absolute"
+				RELATIVE_TO_GROUP         = "group"
+				RELATIVE_TO_WORKSPACE     = "container"
+				RELATIVE_TO_DEVELOPER_DIR = "developer"
+			end
+
+			LOCATION_TYPES = 
+				[LocationType::ABSOLUTE_PATH, 
+				LocationType::RELATIVE_TO_GROUP,
+				LocationType::RELATIVE_TO_WORKSPACE, 
+				LocationType::RELATIVE_TO_DEVELOPER_DIR]
+
+			attr_reader :location_type
+
+			def location_type=(value)
+				raise "[Xcodeproj] Invalid location type '#{value}'." unless LOCATION_TYPES.include? value
+				@location_type = value
+			end
+
+			attr_accessor :path
+
 			# @return [String] the ISA of the class.
 			#
 			def self.isa
@@ -63,16 +85,15 @@ module Xcodeproj
 		# 
 		class FileRef < WorkspaceItem
 
-			attr_accessor :path
-
 			def initialize(path=nil)
 				@isa = self.class.isa
 				@path = path
+				@location_type = LocationType::RELATIVE_TO_GROUP # this is the default for FileRefs
 			end
 
 			def to_xml
 				REXML::Element.new("FileRef").tap do |el|
-					el.attributes["location"] = "group:#{@path}"
+					el.attributes["location"] = "#{@location_type}:#{path}"
 				end
 			end
 
@@ -103,15 +124,17 @@ module Xcodeproj
 
 			attr_accessor :name
 
-			def initialize(name=nil)
+			def initialize(name=nil, path=nil)
 				@isa = self.class.isa
 				@contents = []
 				@name = name
+				@path = path
+				@location_type = LocationType::RELATIVE_TO_WORKSPACE # this is the default for Groups
 			end
 
 			def to_xml
 				REXML::Element.new("Group").tap do |el|
-					el.attributes["location"] = "container:"
+					el.attributes["location"] = "#{@location_type}:#{path}"
 					el.attributes["name"] = @name
 					@contents.each { |item| el << item.to_xml }
 				end
