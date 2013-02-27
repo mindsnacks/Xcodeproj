@@ -12,6 +12,12 @@ describe "Xcodeproj::Workspace" do
 			@workspace.include?('Framework.xcodeproj').should == false
 		end
 
+		it "accepts new groups" do
+			@workspace << Xcodeproj::Workspace::Group.new('whee')
+			@workspace.contents.first.isa.should == 'Group'
+			@workspace.contents.first.name.should == 'whee'
+		end
+
 	end
 
   describe "from new" do

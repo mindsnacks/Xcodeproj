@@ -32,84 +32,91 @@ module Xcodeproj
 
 		end
 
-		# Defines types of items that can be contained within a Workspace
+		# Abstract base class that defines types of items that can be contained
+		# within a Workspace.
 		# 
-		module WorkspaceItem
+		class WorkspaceItem
 
-			# Abstract base class for WorkspaceItems
-			# 
-			class AbstractWorkspaceItem
-
-				# @return [String] the ISA of the class.
-				#
-				def self.isa
-					@isa ||= name.split('::').last
-				end
-
-				# @return [String] the object's class name.
-				#
-				attr_reader :isa
-
-				def initialize()
-					@isa = self.class.isa
-				end
-
-				# @return [REXML::Node] the XML representation of the WorkspaceItem
-				# 
-				def to_xml
-					raise "[Xcodeproj] Must be implemented by subclasses."
-				end
-			end
-
-			# Represents a 'FileRef' in the Workspace. This is most commonly used to
-			# reference xcodeproj files, but is it not limited to them.
-			# 
-			class FileRef < AbstractWorkspaceItem
-
-				attr_accessor :path
-
-				def initialize(path=nil)
-					@isa = self.class.isa
-					@path = path
-				end
-
-				def to_xml
-					el = REXML::Element.new("FileRef")
-					el.attributes["location"] = "group:" + @path
-					el 
-				end
-
-				include Comparable
-				
-				def <=>(other_fileref)
-					if self.path < other_fileref.path
-						-1
-					elsif self.path > other_fileref.path
-						1
-					else
-						0
-					end
-				end
-
-			end
-
-			# Represents a 'Group' in the Workspace. Like Groups in Xcode projects,
-			# Groups in Workspaces exist only within the context of the Workspace,
-			# and do not map to any on-disk folders. They are for organizational
-			# purposes only.
+			# @return [String] the ISA of the class.
 			#
-			class Group < AbstractWorkspaceItem
-
-				# Group objects are Containers.
-				# 
-				include Container
-
-				def initialize()
-					@isa = self.class.isa
-					@contents = []
-				end
-
+			def self.isa
+				@isa ||= name.split('::').last
 			end
+
+			# @return [String] the object's class name.
+			#
+			attr_reader :isa
+
+			def initialize()
+				@isa = self.class.isa
+			end
+
+			# @return [REXML::Node] the XML representation of the WorkspaceItem
+			# 
+			def to_xml
+				raise "[Xcodeproj] Must be implemented by subclasses."
+			end
+		end
+
+		# Represents a 'FileRef' in the Workspace. This is most commonly used to
+		# reference xcodeproj files, but is it not limited to them.
+		# 
+		class FileRef < WorkspaceItem
+
+			attr_accessor :path
+
+			def initialize(path=nil)
+				@isa = self.class.isa
+				@path = path
+			end
+
+			def to_xml
+				REXML::Element.new("FileRef").tap do |el|
+					el.attributes["location"] = "group:#{@path}"
+				end
+			end
+
+			include Comparable
+
+			def <=>(other_fileref)
+				if self.path < other_fileref.path
+					-1
+				elsif self.path > other_fileref.path
+					1
+				else
+					0
+				end
+			end
+
+		end
+
+		# Represents a 'Group' in the Workspace. Like Groups in Xcode projects,
+		# Groups in Workspaces exist only within the context of the Workspace,
+		# and do not map to any on-disk folders. They are for organizational
+		# purposes only.
+		#
+		class Group < WorkspaceItem
+
+			# Group objects are Containers.
+			# 
+			include Container
+
+			attr_accessor :name
+
+			def initialize(name=nil)
+				@isa = self.class.isa
+				@contents = []
+				@name = name
+			end
+
+			def to_xml
+				REXML::Element.new("Group").tap do |el|
+					el.attributes["location"] = "container:"
+					el.attributes["name"] = @name
+					@contents.each { |item| el << item.to_xml }
+				end
+			end
+
 		end
 
 		# Workspace objects are Containers.
@@ -122,7 +129,7 @@ module Xcodeproj
 		def projpaths
 			projpaths = []
 			traverse do |item| 
-				if item.is_a? WorkspaceItem::FileRef and item.path.end_with? 'xcodeproj'
+				if item.is_a? FileRef and item.path.end_with? 'xcodeproj'
 					projpaths << item.path
 				end
 			end
@@ -139,10 +146,10 @@ module Xcodeproj
 			@contents = []
 
 			contents.each do |item|
-				if item.is_a? WorkspaceItem::AbstractWorkspaceItem
+				if item.is_a? WorkspaceItem
 					@contents << item
 				elsif item.is_a? String
-					@contents << WorkspaceItem::FileRef.new(item)
+					@contents << FileRef.new(item)
 				end
 			end
 		end
@@ -180,7 +187,7 @@ module Xcodeproj
 
 		# Adds a new item to the contents of the workspace.
 		#
-		# @param  [String | AbstractWorkspaceItem] item 
+		# @param  [String | WorkspaceItem] item 
 		# 	If a String is inserted, it will automatically be converted to a
 		# 	FileRef. WorkspaceItems are inserted, as-is. Any other type of object
 		# 	is not allowed.
@@ -189,8 +196,8 @@ module Xcodeproj
 		#
 		def <<(item)
 			if item.is_a? String
-				super << WorkspaceItem::FileRef.new(item)
-			elsif item.is_a? WorkspaceItem::AbtractWorkspaceItem
+				super << FileRef.new(item)
+			elsif item.is_a? WorkspaceItem
 				super << item
 			else
 				raise "[Xcodeproj] Attempt to insert unsupported object type in Workspace."
@@ -205,7 +212,7 @@ module Xcodeproj
 		# @return [Boolean] whether the project is contained in the workspace.
 		#
 		def include?(projpath)
-			target = WorkspaceItem::FileRef.new(projpath)
+			target = FileRef.new(projpath)
 			self.traverse { |item| return true if item == target }
 			false
 		end
