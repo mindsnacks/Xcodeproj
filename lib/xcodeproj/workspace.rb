@@ -57,8 +57,7 @@ module Xcodeproj
 				# @return [REXML::Node] the XML representation of the WorkspaceItem
 				# 
 				def to_xml
-					raise "Must be implemented by subclasses."
-					nil
+					raise "[Xcodeproj] Must be implemented by subclasses."
 				end
 			end
 
@@ -194,7 +193,7 @@ module Xcodeproj
 			elsif item.is_a? WorkspaceItem::AbtractWorkspaceItem
 				super << item
 			else
-				raise "Attempt to insert unsupported object type in Workspace."
+				raise "[Xcodeproj] Attempt to insert unsupported object type in Workspace."
 			end
 		end
 
