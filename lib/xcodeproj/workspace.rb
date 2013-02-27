@@ -50,13 +50,22 @@ module Xcodeproj
 				LocationType::RELATIVE_TO_WORKSPACE, 
 				LocationType::RELATIVE_TO_DEVELOPER_DIR]
 
+			# @return [String] the item's location type @see LOCATION_TYPES.
+			#
 			attr_reader :location_type
 
+			# Set the location reference type.
+			# 
+			# @param  [String] the location type. Raises if it's not one of the
+			# 	recognized values in `LOCATION_TYPES`.
+			#
 			def location_type=(value)
 				raise "[Xcodeproj] Invalid location type '#{value}'." unless LOCATION_TYPES.include? value
 				@location_type = value
 			end
 
+			# The item's path. May be nil.
+			# 
 			attr_accessor :path
 
 			# @return [String] the ISA of the class.
