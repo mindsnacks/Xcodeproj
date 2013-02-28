@@ -59,9 +59,16 @@ describe "Xcodeproj::Workspace" do
 			@workspace.contents.first.name.should == 'Child'
 		end
 
+		it "finds project within a group" do
+			group = Xcodeproj::Workspace::Group.new('Projects')
+			@workspace.contents << group
+			group << Xcodeproj::Workspace::FileRef.new('Framework.xcodeproj')
+			@workspace.include?('Framework.xcodeproj').should == true
+		end
+
 	end
 
-  describe "from new" do
+  describe "from new with contents" do
     before do
       @workspace = Xcodeproj::Workspace.new('Pods/Pods.xcodeproj', 'App.xcodeproj')
     end
