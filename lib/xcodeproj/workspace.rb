@@ -46,9 +46,9 @@ module Xcodeproj
 
 			LOCATION_TYPES = 
 				[LocationType::ABSOLUTE_PATH, 
-				LocationType::RELATIVE_TO_GROUP,
-				LocationType::RELATIVE_TO_WORKSPACE, 
-				LocationType::RELATIVE_TO_DEVELOPER_DIR]
+					LocationType::RELATIVE_TO_GROUP,
+					LocationType::RELATIVE_TO_WORKSPACE, 
+					LocationType::RELATIVE_TO_DEVELOPER_DIR]
 
 			# @return [String] the item's location type @see LOCATION_TYPES.
 			#
@@ -64,9 +64,13 @@ module Xcodeproj
 				@location_type = value
 			end
 
-			# The item's path. May be nil.
-			# 
 			attr_accessor :path
+
+			attr_reader :location
+
+			def location
+				"#{@location_type}:#{path}"
+			end
 
 			# @return [String] the ISA of the class.
 			#
@@ -87,6 +91,11 @@ module Xcodeproj
 			def to_xml
 				raise "[Xcodeproj] Must be implemented by subclasses."
 			end
+
+			def ==(other)
+				self.location == other.location
+			end
+
 		end
 
 		# Represents a 'FileRef' in the Workspace. This is most commonly used to
@@ -102,19 +111,7 @@ module Xcodeproj
 
 			def to_xml
 				REXML::Element.new("FileRef").tap do |el|
-					el.attributes["location"] = "#{@location_type}:#{path}"
-				end
-			end
-
-			include Comparable
-
-			def <=>(other_fileref)
-				if self.path < other_fileref.path
-					-1
-				elsif self.path > other_fileref.path
-					1
-				else
-					0
+					el.attributes["location"] = self.location
 				end
 			end
 
@@ -143,10 +140,14 @@ module Xcodeproj
 
 			def to_xml
 				REXML::Element.new("Group").tap do |el|
-					el.attributes["location"] = "#{@location_type}:#{path}"
+					el.attributes["location"] = self.location
 					el.attributes["name"] = @name
 					@contents.each { |item| el << item.to_xml }
 				end
+			end
+
+			def ==(other)
+				self.location == other.location and self.name == other.name
 			end
 
 		end
